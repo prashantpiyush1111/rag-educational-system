@@ -1,0 +1,298 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # ============================================================
+  # 1. JAVA BACKEND - BUILD & TEST
+  # ============================================================
+  java-build:
+    name: Java Backend - Build & Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: ragdb_test
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin123
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('java-backend/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build and test Java backend
+        run: |
+          cd java-backend
+          mvn clean compile
+          mvn test
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          DB_URL: jdbc:postgresql://localhost:5432/ragdb_test
+          DB_USERNAME: admin
+          DB_PASSWORD: admin123
+          REDIS_HOST: localhost
+
+      - name: Package Java backend (JAR)
+        run: |
+          cd java-backend
+          mvn package -DskipTests
+
+      - name: Upload Java JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-backend-jar
+          path: java-backend/target/*.jar
+
+  # ============================================================
+  # 2. PYTHON AI SERVICE - LINT & TEST
+  # ============================================================
+  python-build:
+    name: Python AI Service - Lint & Test
+    runs-on: ubuntu-latest
+
+    services:
+      qdrant:
+        image: qdrant/qdrant:latest
+        ports:
+          - 6333:6333
+        options: >-
+          --health-cmd "curl -f http://localhost:6333/healthz || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          cd python-ai-service
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov flake8 black
+
+      - name: Lint with flake8
+        run: |
+          cd python-ai-service
+          flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 app/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Check formatting with black
+        run: |
+          cd python-ai-service
+          black --check app/
+
+      - name: Run Python tests with coverage
+        run: |
+          cd python-ai-service
+          pytest --cov=app --cov-report=xml --cov-report=html
+        env:
+          QDRANT_HOST: localhost
+          QDRANT_PORT: 6333
+          REDIS_URL: redis://localhost:6379
+          LLM_TYPE: dummy
+
+      - name: Upload Python coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-coverage
+          path: python-ai-service/htmlcov/
+
+      - name: Upload Python test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-test-results
+          path: python-ai-service/.pytest_cache/
+
+  # ============================================================
+  # 3. FRONTEND - BUILD & LINT
+  # ============================================================
+  frontend-build:
+    name: Frontend - Build & Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Lint
+        run: |
+          cd frontend
+          npm run lint || echo "No lint script found"
+
+      - name: Build
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/build/
+
+  # ============================================================
+  # 4. SECURITY SCAN (Trivy)
+  # ============================================================
+  security-scan:
+    name: Security Scan (Trivy)
+    runs-on: ubuntu-latest
+    needs: [java-build, python-build, frontend-build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy on Java backend
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: 'java-backend'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Run Trivy on Python service
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: 'python-ai-service'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+
+  # ============================================================
+  # 5. DEPENDENCY VULNERABILITY CHECK
+  # ============================================================
+  dependency-check:
+    name: Dependency Vulnerability Check
+    runs-on: ubuntu-latest
+    needs: [java-build, python-build, frontend-build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Java dependencies (OWASP)
+      - name: OWASP Dependency Check - Java
+        uses: dependency-check/Dependency-Check_Action@main
+        id: JavaDepCheck
+        with:
+          project: 'java-backend'
+          path: 'java-backend'
+          format: 'HTML'
+          out: 'reports'
+          args: >
+            --enableExperimental
+            --failOnCVSS 7
+
+      - name: Upload OWASP report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports/
+
+      # Python dependencies (Safety)
+      - name: Safety Check - Python
+        run: |
+          cd python-ai-service
+          pip install safety
+          safety check --full-report
+
+  # ============================================================
+  # 6. NOTIFICATION (Slack/Email)
+  # ============================================================
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    needs: [java-build, python-build, frontend-build, security-scan, dependency-check]
+    if: always()
+
+    steps:
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "CI Pipeline completed for ${{ github.repository }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*CI Pipeline Status*\nRepository: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nStatus: ${{ job.status }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: env.SLACK_WEBHOOK_URL != ''
