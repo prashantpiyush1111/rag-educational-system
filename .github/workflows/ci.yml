@@ -30,7 +30,7 @@ jobs:
           cd java-backend
           mvn clean compile
 
-  # ============================================================
+  # ===========================================================
   # PYTHON AI SERVICE - Sirf syntax check (abhi tests nahi)
   # ============================================================
   python-build:
@@ -56,4 +56,4 @@ jobs:
       - name: Basic syntax check
         run: |
           cd python-ai-service
-          python -m py_compile app/*.py || echo "Some files not ready yet"
+          python -m py_compile app/*.py || echo "Some files not ready yet" 
