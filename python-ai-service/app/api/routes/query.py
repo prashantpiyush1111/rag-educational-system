@@ -1,12 +1,13 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.models.request import QueryRequest
 from app.models.response import QueryResponse
 from app.rag.core.retriever import retrieve_relevant_chunks
 from app.rag.llm.generator import generate_answer
+from app.api.dependencies.auth import verify_api_key
 
 router = APIRouter()
 
-@router.post("/", response_model=QueryResponse)
+@router.post("/", response_model=QueryResponse, dependencies=[Depends(verify_api_key)])
 async def query_documents(request: QueryRequest):
     try:
         relevant_chunks = retrieve_relevant_chunks(
