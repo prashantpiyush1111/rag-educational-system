@@ -8,7 +8,7 @@ on:
 
 jobs:
   # ============================================================
-  # JAVA BACKEND - Sirf compile check (test nahi, abhi tests nahi hain)
+  # JAVA BACKEND - Sirf compile check (agar folder exist kare)
   # ============================================================
   java-build:
     name: Java Backend - Build Check
@@ -18,7 +18,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check if java-backend exists
+        id: check
+        run: |
+          if [ -f "java-backend/pom.xml" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "java-backend/pom.xml not found, skipping Java build"
+          fi
+
       - name: Set up JDK 17
+        if: steps.check.outputs.exists == 'true'
         uses: actions/setup-java@v4
         with:
           java-version: '17'
@@ -26,12 +37,13 @@ jobs:
           cache: 'maven'
 
       - name: Compile Java backend (tests skip)
+        if: steps.check.outputs.exists == 'true'
         run: |
           cd java-backend
           mvn clean compile
 
   # ===========================================================
-  # PYTHON AI SERVICE - Sirf syntax check (abhi tests nahi)
+  # PYTHON AI SERVICE - Syntax check + import check
   # ============================================================
   python-build:
     name: Python AI Service - Syntax Check
@@ -41,19 +53,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.10
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
           cache: 'pip'
+          cache-dependency-path: python-ai-service/requirements.txt
 
       - name: Install dependencies
         run: |
           cd python-ai-service
           python -m pip install --upgrade pip
-          pip install -r requirements.txt || echo "requirements.txt not ready yet"
+          pip install -r requirements.txt
 
       - name: Basic syntax check
         run: |
           cd python-ai-service
-          python -m py_compile app/*.py || echo "Some files not ready yet" 
+          python -m py_compile app/main.py app/config/*.py app/api/**/*.py app/rag/**/*.py app/models/*.py app/services/*.py app/utils/*.py
