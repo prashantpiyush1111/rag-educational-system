@@ -1,10 +1,10 @@
-from openai import OpenAI
+from groq import Groq
 from app.config.settings import settings
 
 _client = None
 
-def get_openai_client() -> OpenAI:
+def get_groq_client() -> Groq:
     global _client
     if _client is None:
-        _client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        _client = Groq(api_key=settings.GROQ_API_KEY)
     return _client

@@ -1,9 +1,10 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    OPENAI_API_KEY: str
-    OPENAI_CHAT_MODEL: str = "gpt-4o-mini"
-    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    GROQ_API_KEY: str
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+
+    EMBEDDING_MODEL_NAME: str = "sentence-transformers/all-MiniLM-L6-v2"
 
     CHROMA_DB_PATH: str = "./data/chroma_db"
     CHROMA_COLLECTION_NAME: str = "educational_documents"

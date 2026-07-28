@@ -1,8 +1,8 @@
-from app.rag.llm.client import get_openai_client
+from app.rag.llm.client import get_groq_client
 from app.config.settings import settings
 
 def generate_answer(question: str, context_chunks: list[dict]) -> str:
-    client = get_openai_client()
+    client = get_groq_client()
 
     context_text = "\n\n".join(
         f"[Source: {chunk['source']}]\n{chunk['text']}" for chunk in context_chunks
@@ -17,7 +17,7 @@ def generate_answer(question: str, context_chunks: list[dict]) -> str:
     user_prompt = f"Context:\n{context_text}\n\nQuestion: {question}\n\nAnswer:"
 
     response = client.chat.completions.create(
-        model=settings.OPENAI_CHAT_MODEL,
+        model=settings.GROQ_MODEL,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
