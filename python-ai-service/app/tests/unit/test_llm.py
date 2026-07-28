@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-@patch("app.rag.llm.client.get_openai_client")
+@patch("app.rag.llm.client.get_groq_client")
 def test_generate_answer(mock_get_client):
     mock_client = MagicMock()
     mock_response = MagicMock()
