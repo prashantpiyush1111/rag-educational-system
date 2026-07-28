@@ -4,15 +4,22 @@ from app.models.response import QueryResponse
 from app.rag.core.retriever import retrieve_relevant_chunks
 from app.rag.llm.generator import generate_answer
 from app.api.dependencies.auth import verify_api_key
+from app.services.cache import get_cached_response, set_cached_response
 
 router = APIRouter()
 
 @router.post("/", response_model=QueryResponse, dependencies=[Depends(verify_api_key)])
 async def query_documents(request: QueryRequest):
     try:
+        top_k = request.top_k or 4
+
+        cached = get_cached_response(request.question, top_k)
+        if cached is not None:
+            return QueryResponse(**cached)
+
         relevant_chunks = retrieve_relevant_chunks(
             query=request.question,
-            top_k=request.top_k or 4
+            top_k=top_k
         )
 
         if not relevant_chunks:
@@ -23,11 +30,15 @@ async def query_documents(request: QueryRequest):
             context_chunks=relevant_chunks
         )
 
-        return QueryResponse(
-            answer=answer,
-            sources=[chunk["source"] for chunk in relevant_chunks],
-            question=request.question
-        )
+        response_data = {
+            "answer": answer,
+            "sources": [chunk["source"] for chunk in relevant_chunks],
+            "question": request.question
+        }
+
+        set_cached_response(request.question, top_k, response_data)
+
+        return QueryResponse(**response_data)
 
     except HTTPException:
         raise
