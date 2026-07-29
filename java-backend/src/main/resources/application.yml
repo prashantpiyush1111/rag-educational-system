@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: java-backend
+  profiles:
+    active: dev
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:change-this-to-a-long-random-secret-key-min-32-chars}
+    expiration-ms: 86400000
+
+  python-service:
+    base-url: ${PYTHON_SERVICE_URL:http://127.0.0.1:8000}
+    api-key: ${PYTHON_SERVICE_API_KEY:dev-internal-key-change-me}
