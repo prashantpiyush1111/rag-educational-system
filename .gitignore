@@ -33,3 +33,19 @@ htmlcov/
 build/
 dist/
 *.egg
+
+# Node
+frontend/node_modules/
+node_modules/
+
+# Vite
+dist/
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Environment
+.env

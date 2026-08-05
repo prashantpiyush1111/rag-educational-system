@@ -8,7 +8,8 @@
  * Adjust paths/fields below if your actual Java backend routes differ.
  */
 
-const API_BASE = process.env.REACT_APP_API_BASE || "http://127.0.0.1:8000";
+const API_BASE =
+  import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 const TOKEN_KEY = "auth_token";
 
 export const auth = {
