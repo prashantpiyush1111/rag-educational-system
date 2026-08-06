@@ -33,3 +33,25 @@ def store_embeddings(embedded_chunks: list[dict]):
         documents=documents,
         metadatas=metadatas
     )
+
+
+def list_documents():
+    collection = get_collection()
+
+    result = collection.get(include=["metadatas"])
+
+    sources = sorted(
+        set(
+            metadata["source"]
+            for metadata in result["metadatas"]
+            if "source" in metadata
+        )
+    )
+
+    return [
+        {
+            "id": source,
+            "filename": source
+        }
+        for source in sources
+    ]
