@@ -2,10 +2,11 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from app.rag.ingestion.loader import load_document
 from app.rag.ingestion.processor import chunk_document
 from app.rag.embeddings.encoder import embed_chunks
-from app.rag.core.vector_store import store_embeddings
+from app.rag.core.vector_store import store_embeddings, list_documents
 from app.api.dependencies.auth import verify_api_key
 
 router = APIRouter()
+
 
 @router.post("/upload", dependencies=[Depends(verify_api_key)])
 async def upload_document(file: UploadFile = File(...)):
@@ -39,3 +40,8 @@ async def upload_document(file: UploadFile = File(...)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/")
+async def get_documents():
+    return list_documents()
