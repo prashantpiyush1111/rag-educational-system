@@ -29,10 +29,13 @@ export default function DocumentUpload({ onUploaded }) {
     formData.append("file", file);
 
     try {
-      const res = await fetch(`${API_BASE}/documents/upload`, {
-        method: "POST",
-        body: formData,
-      });
+const res = await fetch(`${API_BASE}/documents/upload`, {
+    method: "POST",
+    headers: {
+        "X-API-Key": "Prashant",
+    },
+    body: formData,
+});
       const data = await res.json();
 
       if (res.ok) {
