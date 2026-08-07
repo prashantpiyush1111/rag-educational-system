@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: rag-postgres
+    environment:
+      POSTGRES_DB: rag_system
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d rag_system"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: rag-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  python-ai-service:
+    build:
+      context: ../python-ai-service
+    container_name: rag-ai-service
+    environment:
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+    volumes:
+      - chroma_data:/app/data/chroma_db
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  java-backend:
+    build:
+      context: ../java-backend
+    container_name: rag-java-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_USERNAME: admin
+      DB_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/rag_system
+      JWT_SECRET: ${JWT_SECRET:-change-this-to-a-long-random-secret-key-min-32-chars}
+      PYTHON_SERVICE_URL: http://python-ai-service:8000
+      PYTHON_SERVICE_API_KEY: ${INTERNAL_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      python-ai-service:
+        condition: service_started
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+      args:
+        VITE_API_BASE: /api
+    container_name: rag-frontend
+    depends_on:
+      - java-backend
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: ./nginx
+    container_name: rag-nginx-gateway
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - java-backend
+      - python-ai-service
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  chroma_data:
