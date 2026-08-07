@@ -8,10 +8,15 @@
 
 const API_BASE =
   import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
+const API_KEY = import.meta.env.VITE_INTERNAL_API_KEY;
 
 async function request(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...options.headers },
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-Key": API_KEY,
+      ...options.headers,
+    },
     ...options,
   });
 
@@ -46,6 +51,7 @@ export const api = {
 
     return fetch(`${API_BASE}/documents/upload`, {
       method: "POST",
+      headers: { "X-API-Key": API_KEY },
       body: formData,
     }).then(async (res) => {
       const data = await res.json();
