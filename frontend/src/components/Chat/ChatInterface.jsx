@@ -31,13 +31,13 @@ export default function ChatInterface() {
     setQuestion("");
     setLoading(true);
 
-    try {
-      const res = await fetch(`${API_BASE}/query/`, {
-        method: "POST",
-        headers: {
-    "Content-Type": "application/json",
-    "X-API-Key": "Prashant",
-},
+try {
+  const res = await fetch(`${API_BASE}/query/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-Key": import.meta.env.VITE_INTERNAL_API_KEY,
+    },
         body: JSON.stringify({ question: trimmed, top_k: 4 }),
       });
       const data = await res.json();

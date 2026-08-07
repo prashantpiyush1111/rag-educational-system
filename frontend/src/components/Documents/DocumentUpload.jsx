@@ -32,7 +32,7 @@ export default function DocumentUpload({ onUploaded }) {
 const res = await fetch(`${API_BASE}/documents/upload`, {
     method: "POST",
     headers: {
-        "X-API-Key": "Prashant",
+        "X-API-Key": import.meta.env.VITE_INTERNAL_API_KEY,
     },
     body: formData,
 });
