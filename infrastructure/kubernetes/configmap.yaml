@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rag-config
+data:
+  # Python AI service settings
+  GROQ_MODEL: "llama-3.3-70b-versatile"
+  EMBEDDING_MODEL_NAME: "sentence-transformers/all-MiniLM-L6-v2"
+  CHROMA_DB_PATH: "./data/chroma_db"
+  CHROMA_COLLECTION_NAME: "educational_documents"
+  CHUNK_SIZE: "1000"
+  CHUNK_OVERLAP: "200"
+  TOP_K_RESULTS: "4"
+  APP_HOST: "0.0.0.0"
+  APP_PORT: "8000"
+
+  # Java backend settings
+  SPRING_PROFILES_ACTIVE: "prod"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres-service:5432/rag_system"
+  PYTHON_SERVICE_URL: "http://python-ai-service:8000"
