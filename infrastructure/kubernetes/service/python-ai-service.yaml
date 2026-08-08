@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: python-ai-service
+  labels:
+    app: python-ai-service
+spec:
+  type: ClusterIP
+  selector:
+    app: python-ai-service
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
