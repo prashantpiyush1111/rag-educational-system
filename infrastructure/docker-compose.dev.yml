@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  python-ai-service:
+    build:
+      context: ../python-ai-service
+    volumes:
+      - ../python-ai-service/app:/app/app
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    ports:
+      - "8000:8000"
+
+  java-backend:
+    build:
+      context: ../java-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+    ports:
+      - "9090:9090"
+
+  frontend:
+    build:
+      context: ../frontend
+      args:
+        VITE_API_BASE: http://localhost:9090/api
+    volumes:
+      - ../frontend/src:/app/src
+    ports:
+      - "5173:5173"
+
+  postgres:
+    ports:
+      - "5432:5432"
+
+  nginx:
+    ports:
+      - "80:80"
