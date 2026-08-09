@@ -1,0 +1,53 @@
+{
+  "title": "RAG System Dashboard",
+  "timezone": "browser",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Query Requests per Minute",
+      "type": "graph",
+      "targets": [
+        { "expr": "rate(rag_query_requests_total[1m])" }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "id": 2,
+      "title": "Average Retrieval Latency (ms)",
+      "type": "graph",
+      "targets": [
+        { "expr": "avg(rag_retrieval_duration_ms)" }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "id": 3,
+      "title": "Documents Ingested (Total)",
+      "type": "stat",
+      "targets": [
+        { "expr": "sum(rag_documents_ingested_total)" }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 }
+    },
+    {
+      "id": 4,
+      "title": "Cache Hit Rate",
+      "type": "stat",
+      "targets": [
+        { "expr": "rag_cache_hits_total / (rag_cache_hits_total + rag_cache_misses_total)" }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 }
+    },
+    {
+      "id": 5,
+      "title": "LLM Response Errors",
+      "type": "stat",
+      "targets": [
+        { "expr": "sum(rag_llm_errors_total)" }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 }
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}
