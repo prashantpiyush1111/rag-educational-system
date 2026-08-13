@@ -7,9 +7,6 @@ on:
     branches: [ main ]
 
 jobs:
-  # ============================================================
-  # JAVA BACKEND - Sirf compile check (agar folder exist kare)
-  # ============================================================
   java-build:
     name: Java Backend - Build Check
     runs-on: ubuntu-latest
@@ -30,21 +27,18 @@ jobs:
 
       - name: Set up JDK 17
         if: steps.check.outputs.exists == 'true'
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Compile Java backend (tests skip)
+      - name: Validate Java backend
         if: steps.check.outputs.exists == 'true'
         run: |
           cd java-backend
-          mvn clean compile
+          mvn validate
 
-  # ============================================================
-  # PYTHON AI SERVICE - Syntax check + import check
-  # ============================================================
   python-build:
     name: Python AI Service - Syntax Check
     runs-on: ubuntu-latest
@@ -54,7 +48,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
           cache: 'pip'
