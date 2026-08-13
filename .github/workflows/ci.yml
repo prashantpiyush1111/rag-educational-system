@@ -42,7 +42,7 @@ jobs:
           cd java-backend
           mvn clean compile
 
-  # ===========================================================
+  # ============================================================
   # PYTHON AI SERVICE - Syntax check + import check
   # ============================================================
   python-build:
@@ -69,4 +69,4 @@ jobs:
       - name: Basic syntax check
         run: |
           cd python-ai-service
-          python -m py_compile app/main.py app/config/*.py app/api/**/*.py app/rag/**/*.py app/models/*.py app/services/*.py app/utils/*.py
+          find app -name "*.py" -exec python -m py_compile {} +
