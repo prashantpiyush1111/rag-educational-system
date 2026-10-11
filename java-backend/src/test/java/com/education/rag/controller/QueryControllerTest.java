@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.education.rag.dto.request.QueryRequest;
 import com.education.rag.dto.response.QueryResponse;
 import com.education.rag.service.QueryService;
+import com.education.rag.security.jwt.JwtUtil;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class QueryControllerTest {
  @Autowired MockMvc mvc;
  @MockBean QueryService queryService;
+ @MockBean JwtUtil jwtUtil;
 
  @Test void returnsQueryResponse() throws Exception {
   when(queryService.query(eq("student@example.com"),any(QueryRequest.class)))
