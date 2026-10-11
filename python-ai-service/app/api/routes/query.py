@@ -12,17 +12,15 @@ from app.rag.reranker.cross_encoder import rerank_chunks
 from app.rag.memory.conversation import get_history,append_turn,format_history
 from app.api.metrics import REQUEST_LATENCY_SECONDS
 
-log=logging.getLogger(__name__)
-router=APIRouter()
+log=logging.getLogger(__name__);router=APIRouter()
 @router.post("/",response_model=QueryResponse,dependencies=[Depends(verify_api_key)])
 async def query_documents(request:QueryRequest,x_user_id:str|None=Header(default=None)):
  if not x_user_id:raise HTTPException(status_code=400,detail="Missing X-User-Id")
- session=request.session_id
- if not session: session=hashlib.sha256(f"{x_user_id}:{request.question.strip().lower()}".encode()).hexdigest()[:32]
+ session=request.session_id or hashlib.sha256(f"{x_user_id}:{request.question.strip().lower()}".encode()).hexdigest()[:32]
  try:
+  cached=get_cached_response(request.question,request.top_k,x_user_id)
+  if cached is not None:return QueryResponse(**cached)
   with REQUEST_LATENCY_SECONDS.time():
-   cached=get_cached_response(request.question,request.top_k,x_user_id)
-   if cached is not None:return QueryResponse(**cached)
    history=get_history(session)
    chunks=await run_in_threadpool(retrieve_relevant_chunks,request.question,max(request.top_k,12),x_user_id)
    chunks=rerank_chunks(request.question,chunks,request.top_k)
@@ -35,6 +33,6 @@ async def query_documents(request:QueryRequest,x_user_id:str|None=Header(default
  except HTTPException:raise
  except Exception as exc:
   log.exception("RAG query failed")
-  message=str(exc).lower()
-  status=503 if any(k in message for k in ("rate limit","timeout","connection","temporarily unavailable")) else 502
+  text=str(exc).lower()
+  status=503 if any(k in text for k in ("rate limit","timeout","connection","temporarily unavailable")) else 502
   raise HTTPException(status_code=status,detail="AI service temporarily unavailable" if status==503 else "Unable to generate an answer at this time") from exc
