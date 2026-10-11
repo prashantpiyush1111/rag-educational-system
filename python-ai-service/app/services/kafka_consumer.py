@@ -1,5 +1,5 @@
-# Kafka consumer intentionally left minimal — not used in the simplified solo-dev setup.
-# Placeholder for future use if async document processing via Kafka is added.
-
-def start_kafka_consumer():
-    pass
+"""Kafka integration is intentionally not part of this deployment.
+The current architecture uses synchronous Java-to-FastAPI requests and
+does not require an event consumer. This module is retained for import
+compatibility only and does not start background threads or connections.
+"""
