@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from fastapi import APIRouter,HTTPException,Depends,Header
 from starlette.concurrency import run_in_threadpool
@@ -13,21 +14,23 @@ from app.api.metrics import REQUEST_LATENCY_SECONDS
 
 log=logging.getLogger(__name__)
 router=APIRouter()
-
 @router.post("/",response_model=QueryResponse,dependencies=[Depends(verify_api_key)])
 async def query_documents(request:QueryRequest,x_user_id:str|None=Header(default=None)):
  if not x_user_id:raise HTTPException(status_code=400,detail="Missing X-User-Id")
+ session=request.session_id
+ if not session: session=hashlib.sha256(f"{x_user_id}:{request.question.strip().lower()}".encode()).hexdigest()[:32]
  try:
   with REQUEST_LATENCY_SECONDS.time():
-   cached=get_cached_response(request.question,request.top_k)
+   cached=get_cached_response(request.question,request.top_k,x_user_id)
    if cached is not None:return QueryResponse(**cached)
-   history=get_history(request.session_id)
+   history=get_history(session)
    chunks=await run_in_threadpool(retrieve_relevant_chunks,request.question,max(request.top_k,12),x_user_id)
    chunks=rerank_chunks(request.question,chunks,request.top_k)
    if not chunks:raise HTTPException(status_code=404,detail="No relevant documents found")
    answer=await run_in_threadpool(generate_answer,request.question,chunks,format_history(history))
    data={"answer":answer,"sources":sorted({c["source"] for c in chunks}),"question":request.question}
-   set_cached_response(request.question,request.top_k,data);append_turn(request.session_id,request.question,answer)
+   set_cached_response(request.question,request.top_k,data,x_user_id)
+   append_turn(session,request.question,answer)
    return QueryResponse(**data)
  except HTTPException:raise
  except Exception as exc:
