@@ -3,7 +3,7 @@ WORKDIR /app
 ARG VITE_API_BASE=/api
 ENV VITE_API_BASE=$VITE_API_BASE
 COPY package*.json ./
-RUN npm ci
+RUN npm install --package-lock-only --ignore-scripts && npm ci
 COPY . .
 RUN npm run build
 
