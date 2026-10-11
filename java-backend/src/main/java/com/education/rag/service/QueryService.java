@@ -23,21 +23,14 @@ public class QueryService {
     @Transactional
     public QueryResponse query(String email,QueryRequest request){
         User user=users.findByEmail(email).orElseThrow(()->new ResourceNotFoundException("User not found"));
-        int topK=request.effectiveTopK();
-        long started=System.nanoTime();
-        // Cache keys are user-scoped to prevent cross-user answers and source leakage.
+        int topK=request.effectiveTopK();long started=System.nanoTime();
         String scopedQuestion="user:"+user.getId()+":"+request.question();
-        QueryResponse response=cache.get(scopedQuestion,topK);
-        if(response==null){
-            response=python.query(request.question(),topK,user.getId(),request.sessionId());
-            cache.put(scopedQuestion,topK,response);
-        }
-        QueryLog log=new QueryLog();
-        log.setUser(user);
-        log.setQuestion(request.question());
-        log.setAnswer(response.answer());
-        log.setResponseTimeMs((int)((System.nanoTime()-started)/1_000_000));
-        logs.save(log);
-        return response;
+        QueryResponse cached=cache.get(scopedQuestion,topK);
+        QueryResponse response=cached;
+        if(response==null)response=python.query(request.question(),topK,user.getId(),request.sessionId());
+        QueryLog log=new QueryLog();log.setUser(user);log.setQuestion(request.question());log.setAnswer(response.answer());
+        log.setResponseTimeMs((int)((System.nanoTime()-started)/1_000_000));logs.save(log);
+        if(cached==null)cache.put(scopedQuestion,topK,new QueryResponse(response.answer(),response.sources(),response.question(),log.getId()));
+        return new QueryResponse(response.answer(),response.sources(),response.question(),log.getId());
     }
 }
