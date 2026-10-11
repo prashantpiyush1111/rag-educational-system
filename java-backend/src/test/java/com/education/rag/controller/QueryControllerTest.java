@@ -12,17 +12,25 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(QueryController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@AutoConfigureMockMvc(addFilters=false)
 class QueryControllerTest {
- @Autowired MockMvc mvc; @MockBean QueryService queryService;
- @Test void requiresJwt() throws Exception {
-  mvc.perform(post("/api/query").contentType(MediaType.APPLICATION_JSON).content("{\"question\":\"What is RAG?\"}"))
-    .andExpect(status().isUnauthorized());
+ @Autowired MockMvc mvc;
+ @MockBean QueryService queryService;
+
+ @Test void returnsQueryResponse() throws Exception {
+  when(queryService.query(eq("student@example.com"),any(QueryRequest.class)))
+   .thenReturn(new QueryResponse("Grounded answer",List.of("notes.pdf"),"What is RAG?",42L));
+  mvc.perform(post("/api/query").principal(()->"student@example.com").contentType(MediaType.APPLICATION_JSON).content("{\"question\":\"What is RAG?\"}"))
+   .andExpect(status().isOk()).andExpect(jsonPath("$.answer").value("Grounded answer")).andExpect(jsonPath("$.sources[0]").value("notes.pdf"));
+ }
+ @Test void validatesEmptyQuestion() throws Exception {
+  mvc.perform(post("/api/query").principal(()->"student@example.com").contentType(MediaType.APPLICATION_JSON).content("{\"question\":\"\"}"))
+   .andExpect(status().isBadRequest()).andExpect(jsonPath("$.detail").exists());
  }
 }
