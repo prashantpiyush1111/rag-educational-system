@@ -8,7 +8,6 @@ from app.rag.core.vector_store import store_embeddings,list_documents,delete_doc
 from app.api.dependencies.auth import verify_api_key
 
 router=APIRouter()
-
 @router.post("/upload",dependencies=[Depends(verify_api_key)])
 async def upload_document(file:UploadFile=File(...),user_id:str|None=Form(default=None),x_user_id:str|None=Header(default=None)):
  filename=file.filename or "upload.txt"
@@ -23,7 +22,9 @@ async def upload_document(file:UploadFile=File(...),user_id:str|None=Form(defaul
   text=await run_in_threadpool(load_document,content,ext)
   chunks=chunk_document(text,source=filename)
   embedded=await run_in_threadpool(embed_chunks,chunks)
-  await run_in_threadpool(store_embeddings,embedded,owner)
+  # Avoid collisions when different users upload identically named files.
+  scoped_chunks=[{**c,"id":f"{owner}:{filename}:{i}"} for i,c in enumerate(embedded)]
+  await run_in_threadpool(store_embeddings,scoped_chunks,owner)
   return {"status":"success","filename":filename,"chunks_created":len(embedded)}
  except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
  except HTTPException:raise
