@@ -1,60 +1,39 @@
 package com.education.rag.cache;
 
 import com.education.rag.dto.response.QueryResponse;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Service;
-
-import java.time.Duration;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
 
 @Service
 public class QueryCacheService {
+    private static final String PREFIX="query:";
+    private final StringRedisTemplate redis;
+    private final ObjectMapper mapper;
+    @Value("${cache.query.ttl-minutes:30}") private long ttlMinutes;
+    public QueryCacheService(StringRedisTemplate redis,ObjectMapper mapper){this.redis=redis;this.mapper=mapper;}
 
-    private final RedisTemplate<String, Object> redisTemplate;
-
-    @Value("${cache.query.ttl-minutes:30}")
-    private long ttlMinutes;
-
-    private static final String CACHE_PREFIX = "query:";
-
-    public QueryCacheService(RedisTemplate<String, Object> redisTemplate) {
-        this.redisTemplate = redisTemplate;
-    }
-
-    public QueryResponse get(String question, int topK) {
-        String key = buildKey(question, topK);
-        Object cached = redisTemplate.opsForValue().get(key);
-        return (cached instanceof QueryResponse) ? (QueryResponse) cached : null;
-    }
-
-    public void put(String question, int topK, QueryResponse response) {
-        String key = buildKey(question, topK);
-        redisTemplate.opsForValue().set(key, response, Duration.ofMinutes(ttlMinutes));
-    }
-
-    public void evict(String question, int topK) {
-        redisTemplate.delete(buildKey(question, topK));
-    }
-
-    private String buildKey(String question, int topK) {
-        String raw = question.trim().toLowerCase() + ":" + topK;
-        return CACHE_PREFIX + hash(raw);
-    }
-
-    private String hash(String input) {
+    public QueryResponse get(String question,int topK){
         try {
-            MessageDigest digest = MessageDigest.getInstance("MD5");
-            byte[] hashBytes = digest.digest(input.getBytes());
-            StringBuilder sb = new StringBuilder();
-            for (byte b : hashBytes) {
-                sb.append(String.format("%02x", b));
-            }
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            return String.valueOf(input.hashCode());
-        }
+            String value=redis.opsForValue().get(key(question,topK));
+            return value==null?null:mapper.readValue(value,QueryResponse.class);
+        } catch(Exception ex) { return null; }
+    }
+    public void put(String question,int topK,QueryResponse response){
+        try {redis.opsForValue().set(key(question,topK),mapper.writeValueAsString(response),Duration.ofMinutes(ttlMinutes));}
+        catch(Exception ignored) { /* Cache failure must not fail a query. */ }
+    }
+    public void evict(String question,int topK){try{redis.delete(key(question,topK));}catch(Exception ignored){}}
+    private String key(String question,int topK){
+        String raw=question.trim().toLowerCase(java.util.Locale.ROOT)+":"+topK;
+        try {
+            byte[] bytes=MessageDigest.getInstance("SHA-256").digest(raw.getBytes(StandardCharsets.UTF_8));
+            return PREFIX+java.util.HexFormat.of().formatHex(bytes);
+        } catch(Exception e) {return PREFIX+Integer.toHexString(raw.hashCode());}
     }
 }
