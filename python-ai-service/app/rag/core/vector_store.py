@@ -1,3 +1,4 @@
+import hashlib
 import chromadb
 from app.config.settings import settings
 
@@ -13,45 +14,38 @@ def get_client():
 def get_collection():
     global _collection
     if _collection is None:
-        client = get_client()
-        _collection = client.get_or_create_collection(
-            name=settings.CHROMA_COLLECTION_NAME
-        )
+        _collection = get_client().get_or_create_collection(name=settings.CHROMA_COLLECTION_NAME)
     return _collection
 
-def store_embeddings(embedded_chunks: list[dict]):
+def _metadata_value(value):
+    return str(value) if value is not None else ""
+
+def store_embeddings(embedded_chunks: list[dict], user_id: str | int | None = None):
     collection = get_collection()
+    ids, embeddings, documents, metadatas = [], [], [], []
+    for chunk in embedded_chunks:
+        source = chunk["source"]
+        original_id = str(chunk.get("id") or hashlib.sha256((source + chunk["text"]).encode()).hexdigest())
+        uid = str(user_id if user_id is not None else chunk.get("user_id", ""))
+        chunk_id = hashlib.sha256(f"{uid}:{original_id}".encode()).hexdigest()
+        ids.append(chunk_id)
+        embeddings.append(chunk["embedding"])
+        documents.append(chunk["text"])
+        metadatas.append({"source": source, "user_id": uid, "chunk_id": original_id})
+    if ids:
+        collection.upsert(ids=ids, embeddings=embeddings, documents=documents, metadatas=metadatas)
 
-    ids = [chunk["id"] for chunk in embedded_chunks]
-    embeddings = [chunk["embedding"] for chunk in embedded_chunks]
-    documents = [chunk["text"] for chunk in embedded_chunks]
-    metadatas = [{"source": chunk["source"]} for chunk in embedded_chunks]
-
-    collection.add(
-        ids=ids,
-        embeddings=embeddings,
-        documents=documents,
-        metadatas=metadatas
-    )
-
-
-def list_documents():
+def list_documents(user_id: str | int | None = None):
     collection = get_collection()
+    query = {"user_id": str(user_id)} if user_id is not None else None
+    result = collection.get(where=query, include=["metadatas"]) if query else collection.get(include=["metadatas"])
+    counts: dict[str, int] = {}
+    for metadata in result.get("metadatas") or []:
+        source = metadata.get("source")
+        if source:
+            counts[source] = counts.get(source, 0) + 1
+    return [{"id": source, "filename": source, "chunks_created": count} for source, count in sorted(counts.items())]
 
-    result = collection.get(include=["metadatas"])
-
-    sources = sorted(
-        set(
-            metadata["source"]
-            for metadata in result["metadatas"]
-            if "source" in metadata
-        )
-    )
-
-    return [
-        {
-            "id": source,
-            "filename": source
-        }
-        for source in sources
-    ]
+def delete_document(filename: str, user_id: str | int):
+    collection = get_collection()
+    collection.delete(where={"$and": [{"source": filename}, {"user_id": str(user_id)}]})
