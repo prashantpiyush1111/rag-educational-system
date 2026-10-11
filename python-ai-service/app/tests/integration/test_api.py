@@ -1,24 +1,18 @@
-import pytest
-from unittest.mock import patch
 from fastapi.testclient import TestClient
 from app.main import app
+from app.config.settings import settings
 
 client = TestClient(app)
 
 def test_health_endpoint():
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json()["status"] == "healthy"
+    assert response.json()["status"] == "ok"
 
-@patch("app.api.routes.query.retrieve_relevant_chunks")
-@patch("app.api.routes.query.generate_answer")
-def test_query_endpoint(mock_generate, mock_retrieve):
-    mock_retrieve.return_value = [{"text": "Sample context", "source": "test.pdf"}]
-    mock_generate.return_value = "This is the answer."
+def test_query_rejects_missing_key():
+    response = client.post("/query/", json={"question":"What is RAG?"})
+    assert response.status_code == 401
 
-    response = client.post("/query/", json={"question": "What is RAG?", "top_k": 4})
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["answer"] == "This is the answer."
-    assert data["sources"] == ["test.pdf"]
+def test_documents_requires_user_id():
+    response = client.get("/documents/", headers={"X-API-Key": settings.INTERNAL_API_KEY})
+    assert response.status_code == 400

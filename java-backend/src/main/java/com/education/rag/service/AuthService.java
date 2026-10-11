@@ -9,10 +9,10 @@ import com.education.rag.exception.CustomExceptions;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
-
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
@@ -23,33 +23,32 @@ public class AuthService {
         this.jwtUtil = jwtUtil;
     }
 
+    @Transactional
     public AuthResponse register(AuthRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        String email = request.getEmail().trim().toLowerCase();
+        if (userRepository.existsByEmail(email)) {
             throw new CustomExceptions.UserAlreadyExistsException("Email already registered");
         }
-
         User user = new User();
-        user.setEmail(request.getEmail());
+        user.setEmail(email);
+        user.setFullName(request.getFullName().trim());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole("STUDENT");
-
+        user.setRole(User.Role.STUDENT);
         userRepository.save(user);
-
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
-
-        return new AuthResponse(token, user.getEmail(), user.getRole());
+        return toResponse(user, jwtUtil.generateToken(user.getEmail(), user.getRole().name()));
     }
 
+    @Transactional(readOnly = true)
     public AuthResponse login(AuthRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmail(request.getEmail().trim().toLowerCase())
                 .orElseThrow(() -> new CustomExceptions.InvalidCredentialsException("Invalid email or password"));
-
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new CustomExceptions.InvalidCredentialsException("Invalid email or password");
         }
+        return toResponse(user, jwtUtil.generateToken(user.getEmail(), user.getRole().name()));
+    }
 
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
-
-        return new AuthResponse(token, user.getEmail(), user.getRole());
+    private AuthResponse toResponse(User user, String token) {
+        return new AuthResponse(token, user.getEmail(), user.getFullName(), user.getRole().name());
     }
 }

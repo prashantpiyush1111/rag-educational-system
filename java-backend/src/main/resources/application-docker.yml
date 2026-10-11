@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/rag_system}
+    username: ${SPRING_DATASOURCE_USERNAME:admin}
+    password: ${DB_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+app:
+  python-service:
+    base-url: ${PYTHON_SERVICE_URL:http://python-ai-service:8000}
+    api-key: ${INTERNAL_API_KEY}

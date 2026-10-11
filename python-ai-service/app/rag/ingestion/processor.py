@@ -1,21 +1,8 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from app.config.settings import settings
 
-def chunk_document(text: str, source: str) -> list[dict]:
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=settings.CHUNK_SIZE,
-        chunk_overlap=settings.CHUNK_OVERLAP,
-        separators=["\n\n", "\n", ". ", " ", ""]
-    )
-
-    text_chunks = splitter.split_text(text)
-
-    chunks = []
-    for i, chunk_text in enumerate(text_chunks):
-        chunks.append({
-            "text": chunk_text,
-            "source": source,
-            "chunk_index": i
-        })
-
-    return chunks
+def chunk_document(text: str, source: str, chunk_size: int = 1000, chunk_overlap: int = 150) -> list[dict]:
+    if not text or not text.strip():
+        raise ValueError("Document contains no extractable text")
+    splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    chunks = splitter.split_text(text)
+    return [{"id": f"{source}:{index}", "source": source, "text": chunk} for index, chunk in enumerate(chunks)]
