@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.education.rag.dto.request.AuthRequest;
 import com.education.rag.dto.response.AuthResponse;
 import com.education.rag.repository.UserRepository;
+import com.education.rag.security.jwt.JwtUtil;
 import com.education.rag.service.AuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,7 @@ class AuthControllerTest {
  @Autowired MockMvc mvc;
  @MockBean AuthService service;
  @MockBean UserRepository users;
+ @MockBean JwtUtil jwtUtil;
 
  @Test void registerReturnsAuthResponse() throws Exception {
   when(service.register(any(AuthRequest.class))).thenReturn(new AuthResponse("token","student@example.com","Student","STUDENT"));
