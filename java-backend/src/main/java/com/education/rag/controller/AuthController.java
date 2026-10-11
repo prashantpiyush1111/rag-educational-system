@@ -2,6 +2,7 @@ package com.education.rag.controller;
 
 import java.util.Map;
 import com.education.rag.dto.request.AuthRequest;
+import com.education.rag.dto.request.LoginRequest;
 import com.education.rag.dto.response.AuthResponse;
 import com.education.rag.entity.User;
 import com.education.rag.exception.CustomExceptions.ResourceNotFoundException;
@@ -17,7 +18,10 @@ public class AuthController {
  private final AuthService authService;private final UserRepository users;
  public AuthController(AuthService authService,UserRepository users){this.authService=authService;this.users=users;}
  @PostMapping("/register") public AuthResponse register(@Valid @RequestBody AuthRequest request){return authService.register(request);}
- @PostMapping("/login") public AuthResponse login(@Valid @RequestBody AuthRequest request){return authService.login(request);}
+ @PostMapping("/login") public AuthResponse login(@Valid @RequestBody LoginRequest request){
+  AuthRequest authRequest=new AuthRequest();authRequest.setEmail(request.getEmail());authRequest.setPassword(request.getPassword());
+  return authService.login(authRequest);
+ }
  @GetMapping("/me") public Map<String,String> me(Authentication auth){
   User user=users.findByEmail(auth.getName()).orElseThrow(()->new ResourceNotFoundException("User not found"));
   return Map.of("email",user.getEmail(),"fullName",user.getFullName(),"role",user.getRole().name());
