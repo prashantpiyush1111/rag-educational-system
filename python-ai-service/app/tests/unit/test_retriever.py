@@ -1,21 +1,10 @@
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+from app.rag.core.retriever import retrieve_relevant_chunks
 
+@patch("app.rag.core.retriever.embed_text", return_value=[0.1,0.2])
 @patch("app.rag.core.retriever.get_collection")
-@patch("app.rag.embeddings.encoder.embed_text")
-def test_retrieve_relevant_chunks(mock_embed, mock_get_collection):
-    mock_embed.return_value = [0.1, 0.2, 0.3]
-
-    mock_collection = MagicMock()
-    mock_collection.query.return_value = {
-        "documents": [["This is a test chunk."]],
-        "metadatas": [[{"source": "test.pdf"}]]
-    }
-    mock_get_collection.return_value = mock_collection
-
-    from app.rag.core.retriever import retrieve_relevant_chunks
-    result = retrieve_relevant_chunks("What is testing?", top_k=1)
-
-    assert len(result) == 1
-    assert result[0]["text"] == "This is a test chunk."
-    assert result[0]["source"] == "test.pdf"
+def test_retrieve_filters_by_user(mock_collection, mock_embed):
+    mock_collection.return_value.query.return_value = {"documents":[["chunk"]],"metadatas":[[{"source":"a.pdf"}]],"distances":[[0.2]]}
+    result=retrieve_relevant_chunks("question",top_k=2,user_id="99")
+    assert result[0]["source"]=="a.pdf"
+    assert mock_collection.return_value.query.call_args.kwargs["where"] == {"user_id":"99"}
