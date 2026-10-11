@@ -9,22 +9,21 @@ import com.education.rag.dto.request.LoginRequest;
 import com.education.rag.dto.response.AuthResponse;
 import com.education.rag.repository.UserRepository;
 import com.education.rag.service.AuthService;
-import com.education.rag.security.jwt.JwtFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(AuthController.class)
-@Import(com.education.rag.security.config.SecurityConfig.class)
+@AutoConfigureMockMvc(addFilters = false)
 class AuthControllerTest {
  @Autowired MockMvc mvc;
  @MockBean AuthService service;
  @MockBean UserRepository users;
- @MockBean JwtFilter jwtFilter;
 
  @Test void registerReturnsAuthResponse() throws Exception {
   when(service.register(any(AuthRequest.class))).thenReturn(new AuthResponse("token","student@example.com","Student","STUDENT"));
