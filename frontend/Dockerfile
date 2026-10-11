@@ -1,24 +1,14 @@
-# Stage 1 - Build React (Vite) app
-FROM node:20-alpine AS builder
-
+FROM node:22-alpine AS build
 WORKDIR /app
-
-ARG VITE_API_BASE
+ARG VITE_API_BASE=/api
 ENV VITE_API_BASE=$VITE_API_BASE
-
 COPY package*.json ./
-RUN npm install
-
+RUN npm ci
 COPY . .
-
 RUN npm run build
 
-# Stage 2 - Serve with Nginx
-FROM nginx:alpine
-
-COPY --from=builder /app/dist /usr/share/nginx/html
+FROM nginx:1.27-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-
+COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+HEALTHCHECK --interval=10s --timeout=3s --retries=5 CMD wget -q -O /dev/null http://localhost/ || exit 1
