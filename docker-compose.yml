@@ -53,6 +53,7 @@ services:
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:?Set INTERNAL_API_KEY in .env}
       PYTHON_SERVICE_URL: http://python-ai-service:8000
       REDIS_HOST: redis
+      SPRING_PROFILES_ACTIVE: docker
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
