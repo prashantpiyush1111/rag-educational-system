@@ -18,10 +18,9 @@ public class QueryService {
     private final QueryCacheService cache;
     private final QueryLogRepository logs;
     private final UserRepository users;
-    public QueryService(PythonServiceClient c, QueryCacheService cache, QueryLogRepository logs, UserRepository users){this.pythonServiceClient=c;this.cache=cache;this.logs=logs;this.users=users;}
-
+    public QueryService(PythonServiceClient c,QueryCacheService cache,QueryLogRepository logs,UserRepository users){this.pythonServiceClient=c;this.cache=cache;this.logs=logs;this.users=users;}
     @Transactional
-    public QueryResponse query(String email, QueryRequest request) {
+    public QueryResponse query(String email,QueryRequest request){
         User user=users.findByEmail(email).orElseThrow(()->new ResourceNotFoundException("User not found"));
         int topK=request.effectiveTopK();
         long start=System.nanoTime();
@@ -30,12 +29,7 @@ public class QueryService {
             response=pythonServiceClient.query(request.question(),topK,user.getId(),request.sessionId());
             cache.put(request.question(),topK,response);
         }
-        QueryLog log=new QueryLog();
-        log.setUser(user);
-        log.setQuestion(request.question());
-        log.setAnswer(response.answer());
-        log.setResponseTimeMs((int)((System.nanoTime()-start)/1_000_000));
-        logs.save(log);
+        QueryLog log=new QueryLog();log.setUser(user);log.setQuestion(request.question());log.setAnswer(response.answer());log.setResponseTimeMs((int)((System.nanoTime()-start)/1_000_000));logs.save(log);
         return response;
     }
 }
