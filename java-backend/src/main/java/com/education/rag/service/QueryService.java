@@ -14,23 +14,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class QueryService {
-    private final PythonServiceClient python;
-    private final QueryCacheService cache;
-    private final QueryLogRepository logs;
-    private final UserRepository users;
-    public QueryService(PythonServiceClient python,QueryCacheService cache,QueryLogRepository logs,UserRepository users){this.python=python;this.cache=cache;this.logs=logs;this.users=users;}
-
-    @Transactional
-    public QueryResponse query(String email,QueryRequest request){
-        User user=users.findByEmail(email).orElseThrow(()->new ResourceNotFoundException("User not found"));
-        int topK=request.effectiveTopK();long started=System.nanoTime();
-        String scopedQuestion="user:"+user.getId()+":"+request.question();
-        QueryResponse cached=cache.get(scopedQuestion,topK);
-        QueryResponse response=cached;
-        if(response==null)response=python.query(request.question(),topK,user.getId(),request.sessionId());
-        QueryLog log=new QueryLog();log.setUser(user);log.setQuestion(request.question());log.setAnswer(response.answer());
-        log.setResponseTimeMs((int)((System.nanoTime()-started)/1_000_000));logs.save(log);
-        if(cached==null)cache.put(scopedQuestion,topK,new QueryResponse(response.answer(),response.sources(),response.question(),log.getId()));
-        return new QueryResponse(response.answer(),response.sources(),response.question(),log.getId());
-    }
+ private final PythonServiceClient python;private final QueryCacheService cache;private final QueryLogRepository logs;private final UserRepository users;
+ public QueryService(PythonServiceClient python,QueryCacheService cache,QueryLogRepository logs,UserRepository users){this.python=python;this.cache=cache;this.logs=logs;this.users=users;}
+ @Transactional public QueryResponse query(String email,QueryRequest request){
+  User user=users.findByEmail(email).orElseThrow(()->new ResourceNotFoundException("User not found"));
+  int topK=request.effectiveTopK();long started=System.nanoTime();
+  String key="user:"+user.getId()+":"+request.question();
+  QueryResponse cached=cache.get(key,topK);
+  QueryResponse answer=cached==null?python.query(request.question(),topK,user.getId(),request.sessionId()):cached;
+  QueryLog log=new QueryLog();log.setUser(user);log.setQuestion(request.question());log.setAnswer(answer.answer());log.setResponseTimeMs((int)((System.nanoTime()-started)/1_000_000));logs.save(log);
+  if(cached==null)cache.put(key,topK,new QueryResponse(answer.answer(),answer.sources(),answer.question(),log.getId()));
+  return new QueryResponse(answer.answer(),answer.sources(),answer.question(),log.getId());
+ }
 }
