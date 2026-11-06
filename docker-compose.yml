@@ -56,7 +56,7 @@ services:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
       python-ai-service: {condition: service_healthy}
-    expose: ["8080"]
+    expose: ["8080", "9090"]
     healthcheck:
       test: ["CMD", "java", "-version"]
       interval: 30s

@@ -11,7 +11,7 @@ Browser / React + Vite
 Nginx (port 8080; /api -> Java)
         |
         v
-Java Spring Boot 3 / JWT / JPA / Redis (port 8080 inside compose)
+Java Spring Boot 3 / JWT / JPA / Redis (API 8080; private actuator 9090)
   |             |                 |
   v             v                 v
 PostgreSQL     Redis          Python FastAPI (private, port 8000)
@@ -100,8 +100,8 @@ All browser API routes are served through Nginx at `/api`. Private Python servic
 | DELETE | `/api/documents/{id}` | JWT | Delete current user's document |
 | GET | `/api/metrics` | JWT | User-level document/query metrics |
 | POST | `/api/feedback` | JWT | Rate a query from 1 to 5 |
-| GET | `/actuator/health` | Public | Java health check |
-| GET | `/actuator/prometheus` | Public | Java Prometheus metrics |
+| GET | `/actuator/health` | Internal only | Java health check on management port 9090 |
+| GET | `/actuator/prometheus` | Internal monitoring network only | Java Prometheus metrics on management port 9090; blocked by public Nginx |
 
 ## Tests
 
