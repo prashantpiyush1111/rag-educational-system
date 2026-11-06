@@ -25,8 +25,10 @@ jobs:
         with: {python-version: "3.11", cache: pip, cache-dependency-path: python-ai-service/requirements.txt}
       - run: python -m pip install --upgrade pip && pip install -r requirements.txt
         working-directory: python-ai-service
-      - run: PYTHONPATH=. pytest -q
+      - run: PYTHONPATH=. pytest -q app/tests
         working-directory: python-ai-service
+        env:
+          INTERNAL_API_KEY: ci-test-internal-api-key-at-least-32-characters
   frontend:
     runs-on: ubuntu-latest
     steps:

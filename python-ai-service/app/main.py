@@ -5,6 +5,9 @@ from app.api.routes import query, ingest, health
 from app.api.metrics import router as metrics_router, REQUEST_COUNT, REQUEST_LATENCY_SECONDS
 from app.config.settings import settings
 
+if not settings.INTERNAL_API_KEY or settings.INTERNAL_API_KEY == "local-only-internal-key-change-me":
+    raise RuntimeError("INTERNAL_API_KEY must be configured before starting the AI service")
+
 app = FastAPI(title="RAG Educational System - AI Service")
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=False, allow_methods=["GET", "POST", "DELETE", "OPTIONS"], allow_headers=["Authorization", "Content-Type", "X-API-Key", "X-User-Id"])
 @app.middleware("http")
