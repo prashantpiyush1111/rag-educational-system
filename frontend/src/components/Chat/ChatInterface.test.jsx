@@ -17,4 +17,15 @@ describe("ChatInterface",()=>{it("submits a question with a stable chat session 
  expect(api.post).toHaveBeenCalledWith("/query",{question:"What is photosynthesis?",topK:4,sessionId:"test-session-id"});
  expect(randomUUID).toHaveBeenCalledOnce();
  vi.unstubAllGlobals();
-});});
+
+ it("creates a fallback session id when randomUUID is unavailable",async()=>{
+  vi.stubGlobal("crypto",{});
+  const user=userEvent.setup();render(<ChatInterface/>);
+  await user.type(screen.getByRole("textbox",{name:/question/i}),"What is photosynthesis?");
+  await user.click(screen.getByRole("button",{name:"Ask"}));
+  expect(await screen.findByText("Photosynthesis uses light.")).toBeInTheDocument();
+  const payload=api.post.mock.calls.at(-1)[1];
+  expect(payload.sessionId).toMatch(/^session-\\d+-[a-z0-9]+$/);
+  vi.unstubAllGlobals();
+ });
+});
