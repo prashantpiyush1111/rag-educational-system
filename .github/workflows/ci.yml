@@ -27,6 +27,8 @@ jobs:
         working-directory: python-ai-service
       - run: PYTHONPATH=. pytest -q
         working-directory: python-ai-service
+        env:
+          INTERNAL_API_KEY: ci-test-internal-api-key-at-least-32-characters
   frontend:
     runs-on: ubuntu-latest
     steps:
