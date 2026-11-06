@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "llama-3.1-8b-instant"
+    EMBEDDING_MODEL_NAME: str = "sentence-transformers/all-MiniLM-L6-v2"
     CHROMA_DB_PATH: str = "./chroma_data"
     CHROMA_COLLECTION_NAME: str = "educational_documents"
     INTERNAL_API_KEY: str = "local-only-internal-key-change-me"
