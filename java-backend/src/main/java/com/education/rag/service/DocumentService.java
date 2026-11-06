@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.education.rag.cache.QueryCacheService;
 import com.education.rag.client.PythonServiceClient;
 import com.education.rag.entity.Document;
 import com.education.rag.entity.User;
@@ -14,14 +15,15 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class DocumentService {
- private final PythonServiceClient python; private final DocumentRepository documents; private final UserRepository users;
- public DocumentService(PythonServiceClient python,DocumentRepository documents,UserRepository users){this.python=python;this.documents=documents;this.users=users;}
+ private final PythonServiceClient python; private final DocumentRepository documents; private final UserRepository users; private final QueryCacheService cache;
+ public DocumentService(PythonServiceClient python,DocumentRepository documents,UserRepository users,QueryCacheService cache){this.python=python;this.documents=documents;this.users=users;this.cache=cache;}
  @Transactional public Map<String,Object> upload(String email,MultipartFile file){
   if(file.isEmpty())throw new IllegalArgumentException("Uploaded file is empty");
   User user=users.findByEmail(email).orElseThrow(()->new ResourceNotFoundException("User not found"));
   Map<?,?> result=python.upload(file,user.getId());
   Document doc=new Document();doc.setUser(user);doc.setFilename(file.getOriginalFilename()==null?"upload":file.getOriginalFilename());
   Object count=result.get("chunks_created");doc.setChunksCreated(count instanceof Number n?n.intValue():0);documents.save(doc);
+  cache.invalidateUser(user.getId().toString());
   return Map.of("id",doc.getId(),"filename",doc.getFilename(),"chunks_created",doc.getChunksCreated(),"status","success");
  }
  @Transactional(readOnly=true) public List<Map<String,Object>> list(String email){
@@ -30,5 +32,6 @@ public class DocumentService {
  @Transactional public void delete(String email,Long id){
   Document d=documents.findByIdAndUserEmail(id,email).orElseThrow(()->new ResourceNotFoundException("Document not found"));
   python.deleteDocument(d.getFilename(),d.getUser().getId());documents.delete(d);
+  cache.invalidateUser(d.getUser().getId().toString());
  }
 }
