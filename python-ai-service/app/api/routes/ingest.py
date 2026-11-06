@@ -6,6 +6,7 @@ from app.rag.ingestion.processor import chunk_document
 from app.rag.embeddings.encoder import embed_chunks
 from app.rag.core.vector_store import store_embeddings,list_documents,delete_document
 from app.api.dependencies.auth import verify_api_key
+from app.services.cache import invalidate_user_cache
 
 router=APIRouter()
 @router.post("/upload",dependencies=[Depends(verify_api_key)])
@@ -25,6 +26,7 @@ async def upload_document(file:UploadFile=File(...),user_id:str|None=Form(defaul
   # Avoid collisions when different users upload identically named files.
   scoped_chunks=[{**c,"id":f"{owner}:{filename}:{i}"} for i,c in enumerate(embedded)]
   await run_in_threadpool(store_embeddings,scoped_chunks,owner)
+  invalidate_user_cache(owner)
   return {"status":"success","filename":filename,"chunks_created":len(embedded)}
  except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
  except HTTPException:raise
@@ -39,4 +41,5 @@ async def get_documents(x_user_id:str|None=Header(default=None)):
 async def remove_document(filename:str,x_user_id:str|None=Header(default=None)):
  if not x_user_id:raise HTTPException(status_code=400,detail="Missing X-User-Id")
  delete_document(filename,x_user_id)
+ invalidate_user_cache(x_user_id)
  return {"status":"deleted","filename":filename}
