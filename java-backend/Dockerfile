@@ -7,7 +7,8 @@ RUN mvn -B -DskipTests package
 
 FROM eclipse-temurin:17-jre
 WORKDIR /app
-RUN useradd --system --uid 10001 appuser
+RUN apt-get update && apt-get install -y --no-install-recommends wget && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --uid 10001 appuser
 COPY --from=build /workspace/target/java-backend-0.0.1-SNAPSHOT.jar app.jar
 USER appuser
 EXPOSE 8080
