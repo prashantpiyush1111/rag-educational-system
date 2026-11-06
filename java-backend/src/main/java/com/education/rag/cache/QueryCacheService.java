@@ -1,11 +1,11 @@
 package com.education.rag.cache;
 
 import com.education.rag.dto.response.QueryResponse;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -29,11 +29,24 @@ public class QueryCacheService {
         catch(Exception ignored) { /* Cache failure must not fail a query. */ }
     }
     public void evict(String question,int topK){try{redis.delete(key(question,topK));}catch(Exception ignored){}}
-    private String key(String question,int topK){
-        String raw=question.trim().toLowerCase(java.util.Locale.ROOT)+":"+topK;
+
+    public void invalidateUser(String userId){
         try {
-            byte[] bytes=MessageDigest.getInstance("SHA-256").digest(raw.getBytes(StandardCharsets.UTF_8));
-            return PREFIX+java.util.HexFormat.of().formatHex(bytes);
-        } catch(Exception e) {return PREFIX+Integer.toHexString(raw.hashCode());}
+            Set<String> keys=redis.keys(PREFIX+"user:"+userId+":*");
+            if(keys!=null&&!keys.isEmpty())redis.delete(keys);
+        } catch(Exception ignored) { /* Cache invalidation must not fail document operations. */ }
+    }
+
+    private String key(String question,int topK){
+        String normalized=question.trim().toLowerCase(java.util.Locale.ROOT)+":"+topK;
+        String userPrefix="";
+        if(question.startsWith("user:")){
+            int separator=question.indexOf(':',5);
+            if(separator>5)userPrefix="user:"+question.substring(5,separator)+":";
+        }
+        try {
+            byte[] bytes=MessageDigest.getInstance("SHA-256").digest(normalized.getBytes(StandardCharsets.UTF_8));
+            return PREFIX+userPrefix+java.util.HexFormat.of().formatHex(bytes);
+        } catch(Exception e) {return PREFIX+userPrefix+Integer.toHexString(normalized.hashCode());}
     }
 }
