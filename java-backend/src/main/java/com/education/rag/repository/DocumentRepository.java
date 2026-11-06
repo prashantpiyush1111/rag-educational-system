@@ -9,4 +9,5 @@ public interface DocumentRepository extends JpaRepository<Document,Long> {
     List<Document> findAllByUserEmailOrderByUploadedAtDesc(String email);
     Optional<Document> findByIdAndUserEmail(Long id,String email);
     long countByUserEmail(String email);
+    List<Document> findAllByUser_IdAndFilename(Long userId,String filename);
 }

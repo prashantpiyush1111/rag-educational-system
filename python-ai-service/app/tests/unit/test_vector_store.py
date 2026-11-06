@@ -5,8 +5,10 @@ def test_upsert_stores_user_metadata():
     chunks=[{"id":"file:0","source":"file.txt","text":"hello","embedding":[0.1,0.2]}]
     with patch("app.rag.core.vector_store.get_collection") as get_collection:
         store_embeddings(chunks,user_id="42")
-        args=get_collection.return_value.upsert.call_args.kwargs
+        collection=get_collection.return_value
+        args=collection.upsert.call_args.kwargs
         assert args["metadatas"][0]["user_id"]=="42"
+        assert collection.delete.call_args.kwargs["where"] == {"$and":[{"source":"file.txt"},{"user_id":"42"}]}
 
 def test_list_documents_includes_chunk_count():
     with patch("app.rag.core.vector_store.get_collection") as get_collection:
