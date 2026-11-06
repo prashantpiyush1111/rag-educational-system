@@ -113,14 +113,21 @@ mvn -B verify
 # Python
 cd ../python-ai-service
 python -m pip install -r requirements.txt
+```
 
-# Bash / macOS / Linux
+Set the required internal key before running pytest.
+
+**Bash / macOS / Linux**
+```bash
 export INTERNAL_API_KEY="local-test-key-change-this-value"
 pytest -q app/tests
+```
 
-# PowerShell (run these instead of the two commands above)
+**Windows PowerShell**
+```powershell
 $env:INTERNAL_API_KEY = "local-test-key-change-this-value"
 pytest -q app/tests
+```
 
 # Frontend
 cd ../frontend
