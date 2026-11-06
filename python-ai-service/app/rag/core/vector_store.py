@@ -24,7 +24,9 @@ def store_embeddings(embedded_chunks: list[dict], user_id: str | int | None = No
         ids.append(hashlib.sha256(f"{uid}:{original_id}".encode()).hexdigest())
         embeddings.append(chunk["embedding"]);documents.append(chunk["text"])
         metadatas.append({"source":source,"user_id":uid,"chunk_id":original_id})
-    if ids:collection.upsert(ids=ids,embeddings=embeddings,documents=documents,metadatas=metadatas)
+    if ids:
+        collection.delete(where={"$and":[{"source":embedded_chunks[0]["source"]},{"user_id":str(user_id if user_id is not None else embedded_chunks[0].get("user_id",""))}]})
+        collection.upsert(ids=ids,embeddings=embeddings,documents=documents,metadatas=metadatas)
 
 def list_documents(user_id: str | int | None = None):
     collection=get_collection()
