@@ -4,7 +4,7 @@ import api,{responseDetail} from "../../services/api";
 import {sendFeedback} from "../../services/feedback";
 
 export default function ChatInterface(){
- const [messages,setMessages]=useState([]);const [question,setQuestion]=useState("");const [loading,setLoading]=useState(false);const [error,setError]=useState("");const chatBoxRef=useRef(null);
+ const [messages,setMessages]=useState([]);const [question,setQuestion]=useState("");const [loading,setLoading]=useState(false);const [error,setError]=useState("");const [sessionId]=useState(()=>crypto.randomUUID());const chatBoxRef=useRef(null);
  useEffect(()=>{if(chatBoxRef.current)chatBoxRef.current.scrollTop=chatBoxRef.current.scrollHeight;},[messages]);
  async function rateAnswer(messageId,rating){
   const msg=messages.find(m=>m.id===messageId);
@@ -16,7 +16,7 @@ export default function ChatInterface(){
   event?.preventDefault();const trimmed=question.trim();if(!trimmed||loading)return;
   setMessages(prev=>[...prev,{id:`user-${Date.now()}`,role:"user",text:trimmed}]);setQuestion("");setError("");setLoading(true);
   try{
-   const {data}=await api.post("/query",{question:trimmed,topK:4});
+   const {data}=await api.post("/query",{question:trimmed,topK:4,sessionId});
    setMessages(prev=>[...prev,{id:`assistant-${Date.now()}`,role:"assistant",text:data.answer,sources:data.sources||[],question:data.question||trimmed,queryLogId:data.queryLogId}]);
   }catch(err){setError(responseDetail(err,"Could not connect to the AI service."));}
   finally{setLoading(false);}
