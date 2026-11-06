@@ -5,7 +5,7 @@ description = "RAG-based AI service for educational document Q&A"
 requires-python = ">=3.11"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["app/tests"]
 python_files = "test_*.py"
 
 [build-system]
