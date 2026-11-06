@@ -60,7 +60,7 @@ services:
       python-ai-service: {condition: service_healthy}
     expose: ["8080"]
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:9090/actuator/health"]
       interval: 30s
       timeout: 5s
       retries: 3
