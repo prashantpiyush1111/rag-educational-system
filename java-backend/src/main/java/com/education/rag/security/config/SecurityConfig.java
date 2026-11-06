@@ -21,7 +21,7 @@ public class SecurityConfig {
  @Bean public SecurityFilterChain filterChain(HttpSecurity http)throws Exception{
   http.csrf(csrf->csrf.disable()).cors(cors->cors.configurationSource(corsConfigurationSource()))
    .sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-   .authorizeHttpRequests(auth->auth.requestMatchers("/api/auth/register","/api/auth/login","/actuator/health").permitAll().anyRequest().authenticated())
+   .authorizeHttpRequests(auth->auth.requestMatchers("/api/auth/register","/api/auth/login","/actuator/health","/actuator/prometheus").permitAll().anyRequest().authenticated())
    .addFilterBefore(jwtFilter,UsernamePasswordAuthenticationFilter.class);
   return http.build();
  }
