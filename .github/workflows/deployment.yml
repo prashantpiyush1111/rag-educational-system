@@ -1,14 +1,14 @@
-name: Deployment
-
+name: Deployment entrypoint
 on:
   workflow_dispatch:
-
 jobs:
-  deploy:
+  validate:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Deploy
-        run: echo "Deployment workflow"
+      - name: Validate compose configuration
+        run: |
+          cp .env.example .env
+          sed -i 's/replace-with-a-strong-local-password/ci-password/; s/replace-with-at-least-32-random-bytes/ci-test-secret-key-at-least-32-bytes-long/; s/replace-with-your-groq-api-key/ci-placeholder/; s/replace-with-a-long-random-service-key/ci-internal-placeholder/' .env
+          docker compose config -q
+          rm .env

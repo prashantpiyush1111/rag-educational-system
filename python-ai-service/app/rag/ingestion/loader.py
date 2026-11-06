@@ -1,27 +1,20 @@
 from io import BytesIO
+from pathlib import Path
 from pypdf import PdfReader
+from docx import Document as DocxDocument
 
 def load_document(content: bytes, file_ext: str) -> str:
-    if file_ext == ".pdf":
-        return _load_pdf(content)
-    elif file_ext == ".txt":
-        return _load_txt(content)
-    elif file_ext == ".docx":
-        return _load_docx(content)
+    extension = file_ext.lower()
+    if extension == ".pdf":
+        reader = PdfReader(BytesIO(content))
+        text = "\n".join((page.extract_text() or "") for page in reader.pages)
+    elif extension == ".txt":
+        text = content.decode("utf-8", errors="replace")
+    elif extension == ".docx":
+        document = DocxDocument(BytesIO(content))
+        text = "\n".join(p.text for p in document.paragraphs)
     else:
-        raise ValueError(f"Unsupported file type: {file_ext}")
-
-def _load_pdf(content: bytes) -> str:
-    reader = PdfReader(BytesIO(content))
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text() or ""
+        raise ValueError(f"Unsupported file type: {extension}")
+    if not text.strip():
+        raise ValueError("Document contains no extractable text")
     return text
-
-def _load_txt(content: bytes) -> str:
-    return content.decode("utf-8")
-
-def _load_docx(content: bytes) -> str:
-    from docx import Document
-    doc = Document(BytesIO(content))
-    return "\n".join(para.text for para in doc.paragraphs)

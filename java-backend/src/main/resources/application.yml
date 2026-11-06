@@ -2,13 +2,46 @@ spring:
   application:
     name: java-backend
   profiles:
-    active: dev
-
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/rag_system}
+    username: ${SPRING_DATASOURCE_USERNAME:admin}
+    password: ${DB_PASSWORD:change-me-locally}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:validate}
+    open-in-view: false
+  servlet:
+    multipart:
+      max-file-size: ${MAX_FILE_SIZE:10MB}
+      max-request-size: ${MAX_REQUEST_SIZE:12MB}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      connect-timeout: 2s
+      timeout: 2s
+  jackson:
+    default-property-inclusion: non_null
+server:
+  port: ${SERVER_PORT:8080}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
 app:
   jwt:
-    secret: ${JWT_SECRET:change-this-to-a-long-random-secret-key-min-32-chars}
-    expiration-ms: 86400000
-
+    secret: ${JWT_SECRET:local-only-change-me-to-a-long-random-secret-key}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
   python-service:
     base-url: ${PYTHON_SERVICE_URL:http://127.0.0.1:8000}
-    api-key: ${PYTHON_SERVICE_API_KEY:dev-internal-key-change-me}
+    api-key: ${INTERNAL_API_KEY:local-only-internal-key-change-me}
+cache:
+  query:
+    ttl-minutes: ${QUERY_CACHE_TTL_MINUTES:30}

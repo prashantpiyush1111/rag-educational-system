@@ -1,24 +1,15 @@
-#!/bin/bash
-set -e
-
-API_URL="${API_URL:-http://127.0.0.1:8000}"
-SEED_DIR="./scripts/seed_files"
-
-if [ ! -d "$SEED_DIR" ]; then
-  echo "Seed directory not found: $SEED_DIR"
-  echo "Add sample .pdf/.docx/.txt files there before running this script."
-  exit 1
+#!/usr/bin/env bash
+set -euo pipefail
+BASE_URL="${BASE_URL:-http://localhost:8080}"
+EMAIL="${SEED_EMAIL:-student@example.com}"
+FULL_NAME="${SEED_FULL_NAME:-Demo Student}"
+PASSWORD="${SEED_PASSWORD:-ChangeMe123!}"
+payload=$(FULL_NAME="$FULL_NAME" EMAIL="$EMAIL" PASSWORD="$PASSWORD" python -c 'import json,os; print(json.dumps({"fullName":os.environ["FULL_NAME"],"email":os.environ["EMAIL"],"password":os.environ["PASSWORD"]}))')
+response=$(curl --silent --show-error --fail-with-body -H 'Content-Type: application/json' -d "$payload" "$BASE_URL/api/auth/register" || true)
+if [[ -z "$response" ]] || ! grep -q '"token"' <<<"$response"; then
+ response=$(curl --silent --show-error --fail-with-body -H 'Content-Type: application/json' -d "$payload" "$BASE_URL/api/auth/login")
 fi
-
-echo "Seeding documents from $SEED_DIR to $API_URL..."
-
-for file in "$SEED_DIR"/*; do
-  if [ -f "$file" ]; then
-    echo "Uploading: $file"
-    curl -s -X POST "$API_URL/documents/upload" \
-      -F "file=@$file" | echo
-    echo ""
-  fi
-done
-
-echo "Seeding complete."
+token=$(python -c 'import json,sys; print(json.load(sys.stdin)["token"])' <<<"$response")
+echo "Authenticated seed user $EMAIL. Token omitted."
+curl --silent --show-error --fail-with-body -H "Authorization: Bearer $token" "$BASE_URL/api/auth/me"
+echo
