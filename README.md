@@ -105,39 +105,43 @@ All browser API routes are served through Nginx at `/api`. Private Python servic
 
 ## Tests
 
+**Java**
 ```bash
-# Java
 cd java-backend
 mvn -B verify
+```
 
-# Python
-cd ../python-ai-service
+**Python**
+
+Install dependencies from `python-ai-service`:
+```bash
+cd python-ai-service
 python -m pip install -r requirements.txt
 ```
 
-Set the required internal key before running pytest.
+Set `INTERNAL_API_KEY` before running pytest.
 
-**Bash / macOS / Linux**
+Bash / macOS / Linux:
 ```bash
 export INTERNAL_API_KEY="local-test-key-change-this-value"
 pytest -q app/tests
 ```
 
-**Windows PowerShell**
+Windows PowerShell:
 ```powershell
 $env:INTERNAL_API_KEY = "local-test-key-change-this-value"
 pytest -q app/tests
 ```
 
-# Frontend
-cd ../frontend
+**Frontend**
+```bash
+cd frontend
 npm ci
 npm run build
 npm test -- --run
 ```
 
 The GitHub Actions CI workflow runs those jobs and Docker build checks on pushes/PRs.
-
 ## Project structure
 
 - `java-backend/`: JWT gateway, validation, JPA entities, request/response DTOs and controllers
