@@ -29,7 +29,7 @@ public class PythonServiceClient {
   try{
    Map<?,?> data=client.post().uri("/query/").contentType(MediaType.APPLICATION_JSON).header("X-API-Key",apiKey).header("X-User-Id",String.valueOf(userId))
     .body(Map.of("question",question,"top_k",topK,"session_id",sessionId==null?"":sessionId)).retrieve()
-    .onStatus(HttpStatusCode::isError,(req,res)->{throw new PythonServiceException("AI service rejected the query",res.getStatusCode().value());}).body(Map.class);
+    .onStatus(HttpStatusCode::isError,(req,res)->{int status=res.getStatusCode().value();String message=status==404?"Upload a document first to ask questions.":"AI service rejected the query";throw new PythonServiceException(message,status);}).body(Map.class);
    if(data==null)throw new PythonServiceException("Empty response from AI service",502);
    Object sourceValue=data.get("sources");List<String> sources=sourceValue instanceof List<?> list?list.stream().map(String::valueOf).toList():List.of();
    Object answer=data.get("answer"),q=data.get("question");return new QueryResponse(answer==null?"":String.valueOf(answer),sources,q==null?question:String.valueOf(q));
