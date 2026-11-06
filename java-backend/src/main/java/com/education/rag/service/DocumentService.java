@@ -20,7 +20,11 @@ public class DocumentService {
   if(file.isEmpty())throw new IllegalArgumentException("Uploaded file is empty");
   User user=users.findByEmail(email).orElseThrow(()->new ResourceNotFoundException("User not found"));
   Map<?,?> result=python.upload(file,user.getId());
-  Document doc=new Document();doc.setUser(user);doc.setFilename(file.getOriginalFilename()==null?"upload":file.getOriginalFilename());
+  String filename=file.getOriginalFilename()==null?"upload":file.getOriginalFilename();
+  List<Document> existing=documents.findAllByUser_IdAndFilename(user.getId(),filename);
+  Document doc=existing.isEmpty()?new Document():existing.get(0);
+  if(existing.size()>1)documents.deleteAll(existing.subList(1,existing.size()));
+  doc.setUser(user);doc.setFilename(filename);
   Object count=result.get("chunks_created");doc.setChunksCreated(count instanceof Number n?n.intValue():0);documents.save(doc);
   return Map.of("id",doc.getId(),"filename",doc.getFilename(),"chunks_created",doc.getChunksCreated(),"status","success");
  }
