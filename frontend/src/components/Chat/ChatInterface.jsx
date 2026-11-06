@@ -3,8 +3,13 @@ import ChatMessage from "./ChatMessage";
 import api,{responseDetail} from "../../services/api";
 import {sendFeedback} from "../../services/feedback";
 
+function createSessionId(){
+ if(typeof crypto!=="undefined"&&typeof crypto.randomUUID==="function")return crypto.randomUUID();
+ return `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 export default function ChatInterface(){
- const [messages,setMessages]=useState([]);const [question,setQuestion]=useState("");const [loading,setLoading]=useState(false);const [error,setError]=useState("");const [sessionId]=useState(()=>crypto.randomUUID());const chatBoxRef=useRef(null);
+ const [messages,setMessages]=useState([]);const [question,setQuestion]=useState("");const [loading,setLoading]=useState(false);const [error,setError]=useState("");const [sessionId]=useState(createSessionId);const chatBoxRef=useRef(null);
  useEffect(()=>{if(chatBoxRef.current)chatBoxRef.current.scrollTop=chatBoxRef.current.scrollHeight;},[messages]);
  async function rateAnswer(messageId,rating){
   const msg=messages.find(m=>m.id===messageId);
